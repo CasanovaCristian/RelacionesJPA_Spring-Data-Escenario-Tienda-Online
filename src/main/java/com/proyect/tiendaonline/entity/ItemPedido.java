@@ -47,6 +47,14 @@ public class ItemPedido {
     }
 
     //-----GETTERS AND SETTERS-----
+    public void setProducto(Producto producto) {
+        this.producto = producto;
+    }
+
+    public void setPedido(Pedido pedido) {
+        this.pedido = pedido;
+    }
+
     public Integer getCantidad() {
         return cantidad;
     }
