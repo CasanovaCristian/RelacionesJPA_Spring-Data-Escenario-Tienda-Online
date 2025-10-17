@@ -47,12 +47,9 @@ public class ItemPedido {
     }
 
     //-----GETTERS AND SETTERS-----
-    public void setProducto(Producto producto) {
-        this.producto = producto;
-    }
 
-    public void setPedido(Pedido pedido) {
-        this.pedido = pedido;
+    public Long getId() {
+        return id;
     }
 
     public Integer getCantidad() {
@@ -69,5 +66,21 @@ public class ItemPedido {
 
     public void setPrecioUnitario(BigDecimal precioUnitario) {
         this.precioUnitario = precioUnitario;
+    }
+
+    public Pedido getPedido() {
+        return pedido;
+    }
+
+    public void setPedido(Pedido pedido) {
+        this.pedido = pedido;
+    }
+
+    public Producto getProducto() {
+        return producto;
+    }
+
+    public void setProducto(Producto producto) {
+        this.producto = producto;
     }
 }

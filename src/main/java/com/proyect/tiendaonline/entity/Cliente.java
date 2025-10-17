@@ -93,4 +93,8 @@ public class Cliente {
     public List<Pedido> getPedidos() {
         return pedidos;
     }
+
+    public void setPedidos(List<Pedido> pedidos) {
+        this.pedidos = pedidos;
+    }
 }

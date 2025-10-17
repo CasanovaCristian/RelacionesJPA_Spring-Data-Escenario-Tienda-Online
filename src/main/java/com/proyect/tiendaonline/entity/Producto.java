@@ -43,17 +43,6 @@ public class Producto {
         this.stock = stock;
     }
 
-    //Metodo de conveniencia para mantener coherencia
-    public void addCategoria(Categoria categoria) {
-        categorias.add(categoria);
-        categoria.getProductos().add(this);
-    }
-
-    public void removeCategoria(Categoria categoria) {
-        categorias.remove(categoria);
-        categoria.getProductos().remove(this);
-    }
-
     //-----GETTERS AND SETTER-----
     public Long getId() {
         return id;
@@ -85,5 +74,20 @@ public class Producto {
 
     public Set<Categoria> getCategorias() {
         return categorias;
+    }
+
+    public void setCategorias(Set<Categoria> categorias) {
+        this.categorias = categorias;
+    }
+
+    //Metodo de conveniencia para mantener coherencia
+    public void addCategoria(Categoria categoria) {
+        categorias.add(categoria);
+        categoria.getProductos().add(this);
+    }
+
+    public void removeCategoria(Categoria categoria) {
+        categorias.remove(categoria);
+        categoria.getProductos().remove(this);
     }
 }

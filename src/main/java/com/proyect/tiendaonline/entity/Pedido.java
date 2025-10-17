@@ -93,6 +93,10 @@ public class Pedido {
         return total;
     }
 
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
     public LocalDateTime getFecha() {
         return fecha;
     }
