@@ -29,6 +29,15 @@ public class Categoria {
     public Categoria() {
     }
 
+    /**
+     * Crea una categoría con el nombre indicado.
+     * Se añadió porque otras partes del código instancian `new Categoria(nombre)`.
+     * Tener este constructor evita errores de compilación y facilita pruebas/creación rápida.
+     */
+    public Categoria(String nombre) {
+        this.nombre = nombre;
+    }
+
     //con parametros
     public Categoria(String nombre, Set<Producto> productos) {
         this.nombre = nombre;
