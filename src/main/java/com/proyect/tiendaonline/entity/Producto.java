@@ -48,6 +48,11 @@ public class Producto {
         return id;
     }
 
+    // Nuevo setter para permitir crear instancias con id temporal en conversiones DTO -> entidad
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getNombre() {
         return nombre;
     }

@@ -1,5 +1,6 @@
 package com.proyect.tiendaonline.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ public class Cliente {
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Pedido> pedidos = new ArrayList<>();
 
     //CONSTRUCTORES

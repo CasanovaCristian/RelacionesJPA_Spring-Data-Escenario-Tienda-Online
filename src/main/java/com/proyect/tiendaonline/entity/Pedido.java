@@ -101,6 +101,10 @@ public class Pedido {
         return fecha;
     }
 
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
+    }
+
     public Cliente getCliente() {
         return cliente;
     }

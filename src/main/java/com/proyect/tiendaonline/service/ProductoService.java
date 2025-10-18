@@ -39,10 +39,16 @@ public class ProductoService {
         return productoRepository.findById(id).orElseThrow(() -> new RuntimeException("Producto no encontrado"));
     }
 
-    //Crear producto
+    // Crear un nuevo producto
     @Transactional
     public Producto crearProducto(Producto producto) {
         return productoRepository.save(producto);
+    }
+
+    //Wrapper: nombre usado por controlador
+    @Transactional
+    public Producto crear(Producto producto) {
+        return crearProducto(producto);
     }
 
     //Actualizar producto
@@ -55,10 +61,22 @@ public class ProductoService {
         return productoRepository.save(producto);
     }
 
+    //Wrapper: nombre esperado por el controlador
+    @Transactional
+    public Producto actualizar(Long id, Producto producto) {
+        return actualizarProducto(id, producto);
+    }
+
     //Eliminar producto
     @Transactional
     public void eliminarProducto(Long id) {
         productoRepository.deleteById(id);
+    }
+
+    //Wrapper: nombre esperado por el controlador
+    @Transactional
+    public void eliminar(Long id) {
+        eliminarProducto(id);
     }
 
     //Asignar o crear categorias
@@ -73,6 +91,20 @@ public class ProductoService {
         }
         producto.getCategorias().clear();
         categorias.forEach(producto::addCategoria);
+        return productoRepository.save(producto);
+    }
+
+    // Nuevo: asignar categorias a partir de IDs (controlador envía List<Long>)
+    @Transactional
+    public Producto asignarCategorias(Long productoId, List<Long> categoriaIds) {
+        Producto producto = obtenerPorId(productoId);
+        // Limpiar categorias actuales
+        producto.getCategorias().clear();
+        for (Long catId : categoriaIds) {
+            Categoria categoria = categoriaRepository.findById(catId)
+                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + catId));
+            producto.addCategoria(categoria);
+        }
         return productoRepository.save(producto);
     }
 }

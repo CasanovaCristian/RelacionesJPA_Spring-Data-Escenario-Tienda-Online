@@ -22,15 +22,31 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
 
+    //Wrapper: nombre esperado por el controlador
+    public List<Cliente> listarTodos() {
+        return listarClientes();
+    }
+
     //Buscar cliente por id
     public Cliente obtenerClienteId(Long id) {
         return clienteRepository.findById(id).orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+    }
+
+    //Wrapper: nombre esperado por el controlador
+    public Cliente obtenerPorId(Long id) {
+        return obtenerClienteId(id);
     }
 
     //Crear cliente con direccion
     @Transactional
     public Cliente crearClienteConDireccion(Cliente cliente, Direccion direccion) {
         cliente.setDireccion(direccion);
+        return clienteRepository.save(cliente);
+    }
+
+    //Wrapper: crear (permitir crear sin direccion)
+    @Transactional
+    public Cliente crear(Cliente cliente) {
         return clienteRepository.save(cliente);
     }
 
@@ -43,10 +59,23 @@ public class ClienteService {
         return clienteRepository.save(cliente);
     }
 
-    //Eliminar cliente
+    //Wrapper: nombre esperado por controlador
+    @Transactional
+    public Cliente actualizar(Long id, Cliente cliente) {
+        return actualizarCliente(id, cliente);
+    }
+
+    //Eliminar cliente y validar que se eliminen sus pedidos
+    @Transactional
     public void eliminarCliente(Long id) {
         Cliente cliente = obtenerClienteId(id);
         clienteRepository.delete(cliente);
+    }
+
+    //Wrapper: nombre esperado por controlador
+    @Transactional
+    public void eliminar(Long id) {
+        eliminarCliente(id);
     }
 
     //Buscar por email

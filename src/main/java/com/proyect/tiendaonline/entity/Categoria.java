@@ -1,5 +1,6 @@
 package com.proyect.tiendaonline.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.HashSet;
@@ -22,6 +23,7 @@ public class Categoria {
     private String nombre;
 
     @ManyToMany(mappedBy = "categorias")
+    @JsonIgnore
     private Set<Producto> productos = new HashSet<>();
 
     //CONSTRUCTORES

@@ -16,7 +16,7 @@ public class Direccion {
     private String zip;
 
     //FK hacia cliente
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", unique = true)
     private Cliente cliente;
 

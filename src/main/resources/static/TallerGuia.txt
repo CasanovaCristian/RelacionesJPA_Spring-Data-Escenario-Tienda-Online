@@ -1,0 +1,226 @@
+Taller: Relaciones en JPA con Spring Data – Escenario Tienda Online:
+
+-- Objetivo:
+Modelar y probar relaciones @OneToOne, @OneToMany/@ManyToOne y @ManyToMany (con y sin entidad intermedia) en un proyecto Spring Boot + Spring Data JPA, cuidando cascadas, orphanRemoval, fetch y serialización JSON. Este ejercicio es distinto al de Plataforma de Cursos: el dominio ahora es una Tienda Online.
+
+
+-- Dominio propuesto: Tienda Online
+•	Cliente (id, nombre, email)
+•	Direccion (id, calle, ciudad, pais, zip) — relación 1:1 con Cliente
+•	Pedido (id, fecha, estado, total) — relación N:1 con Cliente
+•	Producto (id, nombre, precio, stock)
+•	ItemPedido (id, cantidad, precioUnitario) — entidad intermedia entre Pedido y Producto
+•	Categoria (id, nombre) — N:M con Producto (puro con @JoinTable)
+
+
+-- Requisitos de relaciones
+•	One-to-One (Cliente–Direccion): Direccion posee la FK (cliente_id). En Cliente, mapear como @OneToOne(mappedBy=...). Usar cascade=ALL, orphanRemoval=true, fetch=LAZY. Permitir crear Cliente con su Direccion en una sola operación.
+•	One-to-Many / Many-to-One (Cliente–Pedido): Pedido tiene FK cliente_id. En Cliente, @OneToMany(mappedBy='cliente', cascade=ALL, orphanRemoval=true, fetch=LAZY). Validar que al eliminar un Cliente se eliminen sus Pedidos (orphanRemoval).
+•	Many-to-Many con entidad intermedia (Pedido–ItemPedido–Producto): ItemPedido tiene @ManyToOne a Pedido y @ManyToOne a Producto y atributos propios (cantidad, precioUnitario). Definir unique constraint (pedido_id, producto_id).
+•	Many-to-Many “puro” (Producto–Categoria): Usar @ManyToMany con @JoinTable(producto_categoria). Poner unique en Categoria.nombre. Evitar EAGER por defecto.
+•	Serialización JSON: Usar DTOs o @EntityGraph para evitar tocar proxies LAZY. Evitar ciclos (usar DTOs o @JsonIgnore en colecciones si es necesario).
+
+
+--Estructura sugerida (sólo esqueletos, sin solución):
+ 
+LocalDateTime fecha; @Column(nullable=false) private String estado; // NUEVO, PAGADO, ENVIADO @Column(nullable=false) private BigDecimal total; @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="cliente_id", nullable=false) private Cliente cliente; @OneToMany(mappedBy="pedido", cascade = CascadeType.ALL, orphanRemoval = true) private List<ItemPedido> items = new ArrayList<>(); public void addItem(ItemPedido it){ items.add(it); it.setPedido(this); } public void
+removeItem(ItemPedido it){ items.remove(it); it.setPedido(null); } }
+// Producto.java @Entity @Table(name="productos") public class Producto { @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id; @Column(nullable=false, unique=true) private String nombre; @Column(nullable=false) private BigDecimal precio; @Column(nullable=false) private Integer stock; @ManyToMany @JoinTable(name="producto_categoria", joinColumns=@JoinColumn(name="producto_id"), inverseJoinColumns=@JoinColumn(name="categoria_id")) private Set<Categoria>
+categorias = new HashSet<>(); }
+// ItemPedido.java @Entity @Table(name="items_pedido", uniqueConstraints = @UniqueConstraint(name="uk_pedido_producto", columnNames={"pedido_id","producto_id"})) public class ItemPedido { @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="pedido_id", nullable=false) private Pedido pedido; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="producto_id", nullable=false) private Producto producto; @Column(nullable=false) private Integer cantidad; @Column(nullable=false) private
+BigDecimal precioUnitario; }
+// Categoria.java @Entity @Table(name="categorias") public class Categoria { @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id; @Column(nullable=false, unique=true) private String nombre; @ManyToMany(mappedBy="categorias") private Set<Producto> productos = new
+HashSet<>(); }
+
+
+
+-- Repositorios & Consultas (ejemplos)
+•	ProductoRepository: findByCategoriasNombre(String nombre)
+•	PedidoRepository: listar con items vía @EntityGraph(attributePaths="items,items.producto"); total por cliente con SUM (DTO)
+•	ClienteRepository: buscar por email; listar clientes con dirección vía @EntityGraph(attributePaths="direccion")
+
+
+
+-- Reglas de negocio (Servicio) – ejemplos
+•	Crear Pedido: validar stock de cada Producto; decrementar stock; calcular total sum(items.cantidad * items.precioUnitario).
+•	Evitar ítems duplicados en un mismo pedido (constraint uk_pedido_producto).
+•	Cancelar Pedido: revertir stock si estado lo permite (p.ej., NUEVO  CANCELADO).
+
+
+-- Endpoints mínimos y completos (listado por controlador)
+A continuación se amplía la sección original "Endopints minimos" con todos los endpoints detectados en los controladores del proyecto (archivos en src/main/java/.../controller). Para cada endpoint se indica: método HTTP, ruta, cuerpo esperado (si aplica), respuesta y notas.
+
+1) Controlador `ClienteController` (base: /api/clientes)
+- GET /api/clientes
+  - Descripción: Listar todos los clientes
+  - Respuesta: List<ClienteDTO>
+
+- GET /api/clientes/{id}
+  - Descripción: Obtener cliente por id
+  - Respuesta: ClienteDTO
+
+- POST /api/clientes
+  - Descripción: Crear cliente (sin dirección)
+  - Cuerpo: ClienteDTO
+  - Respuesta: ClienteDTO (201 Created)
+
+- POST /api/clientes/con-direccion
+  - Descripción: Crear cliente junto con su dirección en una sola operación
+  - Cuerpo: ClienteDTO (incluyendo campo direccion)
+  - Respuesta: ClienteDTO (201 Created)
+  - Nota: cumple el requisito de crear Cliente + Direccion con cascade
+
+- PUT /api/clientes/{id}
+  - Descripción: Actualizar cliente
+  - Cuerpo: ClienteDTO
+  - Respuesta: ClienteDTO
+
+- DELETE /api/clientes/{id}
+  - Descripción: Eliminar cliente por id
+  - Respuesta: 204 No Content
+
+- DELETE /api/clientes/cliente/{id}
+  - Descripción: Alias que también elimina cliente (presente en el controlador)
+  - Respuesta: 204 No Content
+  - Nota: considerar eliminar alias para evitar rutas duplicadas/confusas.
+
+
+2) Controlador `ProductoController` (base: /api/productos)
+- GET /api/productos
+  - Descripción: Listar productos o buscar por categoría con paginación
+  - Query params: categoria (opcional), page (default 0), size (default 10)
+  - Si se pasa categoria devuelve Page<Producto>, sino List<Producto>
+
+- GET /api/productos/{id}
+  - Descripción: Obtener producto por id
+  - Respuesta: Producto
+
+- POST /api/productos
+  - Descripción: Crear producto
+  - Cuerpo: Producto
+  - Respuesta: Producto (201 Created)
+
+- POST /api/productos/{id}/categorias
+  - Descripción: Asignar categorías (lista de IDs) a un producto
+  - Cuerpo: List<Long> (categoriaIds)
+  - Respuesta: Producto actualizado
+  - Nota: se deben validar categorías existentes o crear nuevas según la implementación del servicio
+
+- PUT /api/productos/{id}
+  - Descripción: Actualizar producto
+  - Cuerpo: Producto
+  - Respuesta: Producto actualizado
+
+- DELETE /api/productos/{id}
+  - Descripción: Eliminar producto
+  - Respuesta: 204 No Content
+
+
+3) Controlador `PedidoController` (base: /api/pedidos)
+- GET /api/pedidos
+  - Descripción: Listar todos los pedidos
+  - Respuesta: List<PedidoResponseDTO> (DTO con items y totales)
+
+- GET /api/pedidos/{id}
+  - Descripción: Obtener pedido por id
+  - Respuesta: PedidoResponseDTO
+
+- POST /api/pedidos
+  - Descripción: Crear pedido a partir de PedidoCreateDTO (incluye clienteId y items)
+  - Cuerpo: PedidoCreateDTO (contiene clienteId y lista de ItemPedidoCreateDTO)
+  - Respuesta: PedidoResponseDTO (201 Created)
+  - Nota: el controlador convierte los ItemPedidoCreateDTO en ItemPedido con referencia al producto por id
+
+- POST /api/pedidos/clientes/{clienteId}
+  - Descripción: Crear pedido para un cliente específico con lista de items
+  - Cuerpo: List<ItemPedidoCreateDTO>
+  - Respuesta: PedidoResponseDTO (201 Created)
+
+- PUT /api/pedidos/{id}
+  - Descripción: Actualizar pedido (acepta entidad Pedido en cuerpo)
+  - Cuerpo: Pedido
+  - Respuesta: PedidoResponseDTO
+  - Nota: exponer entidad Pedido directo puede acoplar la API; considerar DTOs para actualización
+
+- PUT /api/pedidos/{id}/estado
+  - Descripción: Cambiar estado del pedido
+  - Query param: estado (valor del enum EstadoPedido)
+  - Respuesta: PedidoResponseDTO
+  - Nota: validar transiciones de estado y revertir stock si aplica
+
+- DELETE /api/pedidos/{id}
+  - Descripción: Eliminar pedido
+  - Respuesta: 204 No Content
+
+
+4) Controlador `CategoriaController` (base: /api/categorias)
+- GET /api/categorias
+  - Descripción: Listar todas las categorías
+  - Respuesta: List<Categoria>
+
+- GET /api/categorias/{id}
+  - Descripción: Obtener categoría por id
+  - Respuesta: Categoria
+
+- POST /api/categorias
+  - Descripción: Crear categoría
+  - Cuerpo: Categoria
+  - Respuesta: Categoria (201 Created)
+
+- PUT /api/categorias/{id}
+  - Descripción: Actualizar categoría
+  - Cuerpo: Categoria
+  - Respuesta: Categoria
+
+- DELETE /api/categorias/{id}
+  - Descripción: Eliminar categoría
+  - Respuesta: 204 No Content
+
+
+-- Correspondencia con los "EndPoints mínimos" originales
+Los endpoints mínimos listados en el enunciado original están cubiertos por los controladores:
+• POST /clientes (crear cliente con dirección) -> en realidad existe POST /api/clientes y POST /api/clientes/con-direccion (usar esta última para crear con dirección)
+• POST /productos (crear producto) -> POST /api/productos
+• POST /productos/{id}/categorias (asignar categorías existentes o crear nuevas) -> POST /api/productos/{id}/categorias
+• POST /clientes/{clienteId}/pedidos (crear pedido con items) -> POST /api/pedidos/clientes/{clienteId}
+• GET /pedidos/{id} (DTO con items y totales) -> GET /api/pedidos/{id}
+• GET /productos?categoria=Backend&page=0&size=5 (filtrar + paginar) -> GET /api/productos?categoria=...&page=...&size=...
+• PUT /pedidos/{id}/estado?valor=ENVIADO (cambiar estado) -> PUT /api/pedidos/{id}/estado?estado=ENVIADO
+
+
+-- Notas rápidas y recomendaciones (para dejar el proyecto "fino" y con buenas prácticas)
+(Ver el análisis más detallado en el README añadido al proyecto)
+- API & DTOs
+  - Usar DTOs para entrada/salida en todos los endpoints públicos (evitar exponer entidades JPA directamente). Ya existen DTOs para Cliente y Pedido; extender a Producto y Categoria.
+  - Validaciones: añadir javax.validation annotations (@NotNull, @Size, @Email, @Positive) en DTOs y usar @Valid en controladores.
+
+- Manejo de errores
+  - Ya existe `GlobalExceptionHandler` (ver carpeta exception). Asegurarse de mapear excepciones de negocio (ResourceNotFound, BusinessException) a respuestas HTTP adecuadas.
+
+- Transacciones y coherencia
+  - Asegurar @Transactional en operaciones que modifican stock y crean pedidos (crearPedido, cambiarEstado) para evitar inconsistencias.
+
+- Tests
+  - Añadir tests unitarios para servicios críticos (PedidoService: crearPedido, validar stock, revertir stock) y tests de integración para los controladores (MockMvc o WebMvcTest).
+
+- Documentación API
+  - Añadir OpenAPI/Swagger (springdoc-openapi-ui) para exponer documentación interactiva.
+
+- Seguridad
+  - Considerar añadir autenticación básica o JWT si el proyecto se va a exponer; al menos proteger endpoints de administración.
+
+- Calidad del código
+  - Evitar rutas duplicadas (ej. DELETE /api/clientes/cliente/{id}).
+  - Homogeneizar nombres de métodos y DTO mappers.
+  - Evitar uso de entidades JPA como cuerpos de petición (usar DTOs).
+
+- Performance
+  - Revisar EAGER vs LAZY para colecciones; preferir LAZY y usar DTOs o @EntityGraph donde se necesiten datos relacionados.
+
+
+-- Pruebas sugeridas (recordadas desde el enunciado)
+• Crear cliente + dirección en una única operación y leerlo por GET (DTO).
+• Crear productos y categorías; asociarlos y listar productos por categoría.
+• Crear pedido con 2 items; verificar decremento de stock y total calculado.
+• Intentar agregar el mismo producto dos veces al mismo pedido (debe fallar).
+• Cambiar estado del pedido y validar reglas.

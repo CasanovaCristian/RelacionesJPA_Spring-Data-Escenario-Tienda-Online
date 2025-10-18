@@ -9,8 +9,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
-    //Una cosa nueva que ví es que Pageable permite paginacion automatica incluye el page, size, sort.
-    //Buscar productos por nombre de categoria ya que tiene cardinacion ManyToMany
+    //Una cosa nueva que vi es que Pageable permite paginación automática incluye el page, size, sort.
+    //Buscar productos por nombre de categoria ya, que tiene coordinación ManyToMany
     @Query("SELECT p FROM Producto p JOIN p.categorias c WHERE c.nombre = :nombre")
     Page<Producto> findByCategoriaNombre(@Param("nombre") String nombre, Pageable pageable);
 }
