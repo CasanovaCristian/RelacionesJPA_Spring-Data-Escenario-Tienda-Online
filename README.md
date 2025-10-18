@@ -105,6 +105,10 @@ Y arranca la app con el perfil `prod`:
 mvn spring-boot:run -Dspring-boot.run.profiles=prod
 ```
 ---
+
+## Link para Las Colecciones de Postman
+https://cristian-casanovaan-6850419.postman.co/workspace/CRISTIAN-STEVEN-CASANOVA-ANACON~b8a95599-75f3-4ce9-8b30-ae4ba2cc3b73/collection/48059945-b97bfde0-00ff-4a9c-9655-78839e3bb2a1?action=share&source=copy-link&creator=48059945
+
 ## 📊 Capturas H2 Console o Logs de SQL (Evidencia de Relaciones)
 
 A continuación se muestran capturas del **H2 Console** y de los **logs SQL**, donde se evidencian las relaciones entre las entidades del proyecto.
